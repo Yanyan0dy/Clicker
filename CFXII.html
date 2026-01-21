@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LeetCode 80: 变量监控增强版</title>
+    <style>
+        :root {
+            --p-color: #2563eb;     /* 蓝色 P */
+            --i-color: #dc2626;     /* 红色 I */
+            --check-color: #d97706; /* 橙色 p-2 */
+            --code-bg: #1e1e1e;
+            --code-hl: #264f78;
+        }
+
+        body {
+            font-family: 'Segoe UI', Consolas, sans-serif;
+            background: #f0f2f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+            height: 100vh;
+        }
+
+        .main-layout {
+            display: flex;
+            gap: 20px;
+            max-width: 1300px;
+            width: 98%;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        /* --- 左侧：可视化区域 --- */
+        .visual-panel {
+            flex: 2;
+            min-width: 450px;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 变量监控仪表盘 (新增) */
+        .var-dashboard {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 30px;
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .var-card {
+            background: white;
+            padding: 10px;
+            border-radius: 6px;
+            border-left: 4px solid #ccc;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+        
+        .var-name { font-size: 12px; color: #64748b; display: block; margin-bottom: 5px; font-weight: bold;}
+        .var-value { font-size: 20px; font-family: 'Consolas', monospace; font-weight: bold; color: #334155; }
+
+        .card-p { border-left-color: var(--p-color); }
+        .card-p .var-value { color: var(--p-color); }
+        
+        .card-i { border-left-color: var(--i-color); }
+        .card-i .var-value { color: var(--i-color); }
+        
+        .card-check { border-left-color: var(--check-color); }
+        .card-check .var-value { color: var(--check-color); }
+
+        /* 数组容器 */
+        .array-box-wrapper {
+            position: relative;
+            height: 120px; /* 给指针留空间 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .array-container {
+            display: flex;
+            position: relative;
+        }
+
+        .cell {
+            width: 50px;
+            height: 50px;
+            margin: 0 3px;
+            border: 2px solid #cbd5e1;
+            background: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            font-weight: bold;
+            color: #64748b;
+            border-radius: 8px;
+            position: relative;
+            transition: all 0.3s;
+        }
+        
+        .cell .idx { position: absolute; top: -20px; font-size: 11px; color: #94a3b8; border:none;}
+        .cell.valid { border-color: #22c55e; background: #dcfce7; color: #166534; }
+        .cell.checker { border-color: var(--check-color); background: #fffbeb; box-shadow: 0 0 0 3px rgba(217,119,6,0.2); }
+
+        /* 指针 */
+        .pointer {
+            position: absolute;
+            font-weight: bold;
+            font-size: 13px;
+            transition: left 0.3s ease;
+            white-space: nowrap;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 10;
+        }
+        .ptr-p { bottom: -45px; color: var(--p-color); }
+        .ptr-p::before { content: "▲"; font-size: 16px; }
+        .ptr-i { top: -50px; color: var(--i-color); }
+        .ptr-i::after { content: "▼"; font-size: 16px; }
+
+        /* 连线 */
+        .line-connector {
+            position: absolute;
+            height: 3px;
+            background: var(--check-color);
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 5;
+            transition: opacity 0.2s;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .line-connector::before, .line-connector::after {
+            content: ''; position: absolute; width: 8px; height: 8px;
+            background: var(--check-color); border-radius: 50%; top: -2.5px;
+        }
+        .line-connector::before { left: 0; }
+        .line-connector::after { right: 0; }
+
+        .log-box {
+            width: 100%;
+            background: #f1f5f9;
+            padding: 15px;
+            border-left: 5px solid #333;
+            border-radius: 6px;
+            min-height: 60px;
+            margin-top: auto;
+            font-size: 14px;
+            line-height: 1.5;
+            box-sizing: border-box;
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        button {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: bold;
+            transition: opacity 0.2s;
+        }
+        #btn-next { background: var(--p-color); color: white; }
+        #btn-reset { background: #64748b; color: white; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+
+        /* --- 右侧：代码区域 --- */
+        .code-panel {
+            flex: 1;
+            background: var(--code-bg);
+            border-radius: 12px;
+            padding: 15px;
+            color: #d4d4d4;
+            font-family: 'Consolas', monospace;
+            font-size: 14px;
+            min-width: 400px;
+        }
+
+        .code-line { padding: 2px 8px; border-radius: 4px; display: block; white-space: pre;}
+        .highlight { background-color: var(--code-hl); color: #fff; border-left: 3px solid #61dafb; }
+        .comment { color: #6a9955; }
+        .keyword { color: #569cd6; }
+        .type { color: #4ec9b0; }
+        .num { color: #b5cea8; }
+
+    </style>
+</head>
+<body>
+
+    <h2 style="text-align:center; color:#333;">LeetCode 80: 变量实时监控版</h2>
+
+    <div class="main-layout">
+        <!-- 左侧：视觉演示 -->
+        <div class="visual-panel">
+            
+            <!-- 新增：变量监控面板 -->
+            <div class="var-dashboard">
+                <div class="var-card card-p">
+                    <span class="var-name">索引 p</span>
+                    <span class="var-value" id="val-p">-</span>
+                </div>
+                <div class="var-card card-i">
+                    <span class="var-name">索引 i</span>
+                    <span class="var-value" id="val-i">-</span>
+                </div>
+                <div class="var-card card-check">
+                    <span class="var-name">检查值 nums[p-2]</span>
+                    <span class="var-value" id="val-check">-</span>
+                </div>
+                <div class="var-card card-i">
+                    <span class="var-name">当前值 nums[i]</span>
+                    <span class="var-value" id="val-num-i">-</span>
+                </div>
+            </div>
+
+            <div class="array-box-wrapper">
+                <div class="array-container" id="array-container">
+                    <!-- 由 JS 生成 -->
+                    <div class="line-connector" id="conn-line"></div>
+                    <div class="pointer ptr-p" id="ptr-p">p</div>
+                    <div class="pointer ptr-i" id="ptr-i">i</div>
+                </div>
+            </div>
+
+            <div class="log-box" id="log">点击“下一步”开始...</div>
+
+            <div class="controls">
+                <button id="btn-reset" onclick="init()">重置演示</button>
+                <button id="btn-next" onclick="nextStep()">下一步</button>
+            </div>
+        </div>
+
+        <!-- 右侧：代码展示 -->
+        <div class="code-panel">
+<div class="code-line" id="line-1"><span class="keyword">public</span> <span class="keyword">int</span> removeDuplicates(<span class="type">int</span>[] nums) {</div>
+<div class="code-line" id="line-2">    <span class="keyword">if</span> (nums.length <= <span class="num">2</span>) <span class="keyword">return</span> nums.length;</div>
+<div class="code-line" id="line-3">    </div>
+<div class="code-line" id="line-4">    <span class="type">int</span> p = <span class="num">2</span>;</div>
+<div class="code-line" id="line-5">    <span class="keyword">for</span> (<span class="type">int</span> i = <span class="num">2</span>; i < nums.length; i++) {</div>
+<div class="code-line" id="line-6">        <span class="comment">// 检查实参：nums[p-2] 和 nums[i]</span></div>
+<div class="code-line" id="line-7">        <span class="keyword">if</span> (nums[p - <span class="num">2</span>] != nums[i]) {</div>
+<div class="code-line" id="line-8">            nums[p] = nums[i];</div>
+<div class="code-line" id="line-9">            p++;</div>
+<div class="code-line" id="line-10">        }</div>
+<div class="code-line" id="line-11">    }</div>
+<div class="code-line" id="line-12">    <span class="keyword">return</span> p;</div>
+<div class="code-line" id="line-13">}</div>
+        </div>
+    </div>
+
+    <script>
+        // 数据：1,1,1 (触发跳过), 2,2 (保留), 3 (保留)
+        const INITIAL_DATA = [1, 1, 1, 1, 2, 2, 3];
+        let nums = [];
+        let p = 2;
+        let i = 2;
+        
+        const S = {
+            INIT: 0,
+            CHECK_LOOP: 1,
+            COMPARE: 2,   
+            ACTION: 3,    
+            MOVE_P: 4,
+            INC_I: 5,     
+            DONE: 6
+        };
+        let state = S.INIT;
+
+        // DOM Elements
+        const container = document.getElementById('array-container');
+        const ptrP = document.getElementById('ptr-p');
+        const ptrI = document.getElementById('ptr-i');
+        const connLine = document.getElementById('conn-line');
+        const logEl = document.getElementById('log');
+        const btnNext = document.getElementById('btn-next');
+        
+        // Variable Elements
+        const valP = document.getElementById('val-p');
+        const valI = document.getElementById('val-i');
+        const valCheck = document.getElementById('val-check');
+        const valNumI = document.getElementById('val-num-i');
+
+        function init() {
+            nums = [...INITIAL_DATA];
+            p = 2;
+            i = 2;
+            state = S.INIT;
+            btnNext.disabled = false;
+            btnNext.textContent = "下一步";
+            highlightLine(4);
+            log("算法开始。初始化 p=2, i=2。");
+            renderArray();
+            updateDashboard();
+            updatePointers();
+            connLine.style.opacity = 0;
+        }
+
+        function updateDashboard() {
+            // 更新实参面板
+            valP.textContent = p;
+            valI.textContent = i;
+            
+            // 安全检查，防止索引越界显示
+            if (i < nums.length) {
+                valNumI.textContent = nums[i];
+            } else {
+                valNumI.textContent = "结束";
+            }
+
+            if (p >= 2) {
+                valCheck.textContent = nums[p-2];
+            } else {
+                valCheck.textContent = "-";
+            }
+        }
+
+        function renderArray() {
+            const oldCells = document.querySelectorAll('.cell');
+            oldCells.forEach(c => c.remove());
+
+            nums.forEach((val, idx) => {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.textContent = val;
+                
+                const idxSpan = document.createElement('span');
+                idxSpan.className = 'idx';
+                idxSpan.textContent = idx;
+                cell.appendChild(idxSpan);
+
+                if (state === S.DONE || idx < p) {
+                    cell.classList.add('valid');
+                }
+                container.insertBefore(cell, connLine);
+            });
+        }
+
+        function updatePointers() {
+            const step = 56; // 50width + 6margin
+            ptrP.style.left = (p * step + 15) + 'px';
+            ptrI.style.left = (i * step + 15) + 'px';
+        }
+
+        function highlightLine(lineNum) {
+            document.querySelectorAll('.code-line').forEach(el => el.classList.remove('highlight'));
+            const el = document.getElementById('line-' + lineNum);
+            if(el) el.classList.add('highlight');
+        }
+
+        function log(msg) { logEl.innerHTML = msg; }
+
+        function showLine(show) {
+            if (!show) {
+                connLine.style.opacity = 0;
+                document.querySelectorAll('.cell').forEach(c => c.classList.remove('checker'));
+                return;
+            }
+            const startIdx = p - 2;
+            const endIdx = i;
+            const step = 56;
+            const left = startIdx * step + 25 + 15; 
+            const width = (endIdx - startIdx) * step;
+            
+            connLine.style.left = left + 'px';
+            connLine.style.width = width + 'px';
+            connLine.style.opacity = 1;
+
+            const cells = document.querySelectorAll('.cell');
+            if(cells[startIdx]) cells[startIdx].classList.add('checker');
+        }
+
+        function nextStep() {
+            showLine(false);
+            
+            switch (state) {
+                case S.INIT:
+                    state = S.CHECK_LOOP;
+                    highlightLine(5);
+                    log(`准备进入循环... (当前 i=${i}, length=${nums.length})`);
+                    break;
+
+                case S.CHECK_LOOP:
+                    if (i < nums.length) {
+                        state = S.COMPARE;
+                        highlightLine(5);
+                        log(`循环条件 i < length 成立。准备比较。`);
+                    } else {
+                        state = S.DONE;
+                        highlightLine(12);
+                        log("循环结束。");
+                    }
+                    break;
+
+                case S.COMPARE:
+                    highlightLine(7);
+                    showLine(true);
+                    updateDashboard(); // 确保数值最新
+
+                    const vCheck = nums[p-2];
+                    const vCurr = nums[i];
+
+                    if (vCheck !== vCurr) {
+                        log(`<b>比较通过：</b><br>实参 nums[p-2] 是 <span style='color:var(--check-color);font-weight:bold'>${vCheck}</span><br>实参 nums[i] &nbsp;&nbsp;&nbsp;是 <span style='color:var(--i-color);font-weight:bold'>${vCurr}</span><br>两者不相等，可以添加。`);
+                        state = S.ACTION;
+                    } else {
+                        log(`<b>比较失败（重复）：</b><br>实参 nums[p-2] 是 <span style='color:var(--check-color);font-weight:bold'>${vCheck}</span><br>实参 nums[i] &nbsp;&nbsp;&nbsp;是 <span style='color:var(--i-color);font-weight:bold'>${vCurr}</span><br>两者相等，说明前面已经有两个 ${vCheck} 了，跳过。`);
+                        state = S.INC_I;
+                    }
+                    break;
+
+                case S.ACTION:
+                    highlightLine(8);
+                    nums[p] = nums[i];
+                    renderArray();
+                    log(`<b>赋值：</b> nums[${p}] = ${nums[i]}`);
+                    state = S.MOVE_P;
+                    break;
+
+                case S.MOVE_P:
+                    highlightLine(9);
+                    p++;
+                    updatePointers();
+                    updateDashboard();
+                    log(`<b>指针移动：</b> p 变为 ${p}。`);
+                    state = S.INC_I;
+                    break;
+
+                case S.INC_I:
+                    highlightLine(5);
+                    i++;
+                    updatePointers();
+                    updateDashboard();
+                    log(`<b>指针移动：</b> i 变为 ${i}。`);
+                    state = S.CHECK_LOOP;
+                    break;
+
+                case S.DONE:
+                    highlightLine(12);
+                    btnNext.disabled = true;
+                    btnNext.textContent = "已完成";
+                    log(`算法结束，返回 p = ${p}。`);
+                    break;
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

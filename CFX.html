@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>算法可视化: Remove Duplicates</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        h1 { color: #333; }
+
+        .container {
+            display: flex;
+            gap: 40px;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            max-width: 1000px;
+            width: 100%;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        /* 数组可视化区域 */
+        .visual-area {
+            flex: 1;
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .array-container {
+            display: flex;
+            margin-top: 40px;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .box {
+            width: 50px;
+            height: 50px;
+            border: 2px solid #ddd;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            font-weight: bold;
+            margin: 2px;
+            border-radius: 6px;
+            position: relative;
+            background: #fff;
+            transition: all 0.3s ease;
+        }
+
+        .box.active-p { border-color: #007bff; background-color: #e6f2ff; }
+        .box.active-i { border-color: #dc3545; }
+        /* 当 p 和 i 重合时 */
+        .box.active-p.active-i { border-color: #6f42c1; background: #f3e6ff; }
+
+        .box .index {
+            position: absolute;
+            top: -25px;
+            font-size: 12px;
+            color: #888;
+        }
+
+        /* 指针标记 */
+        .pointer-label {
+            position: absolute;
+            bottom: -35px;
+            font-weight: bold;
+            font-size: 14px;
+            transition: left 0.3s ease;
+        }
+        .label-p { color: #007bff; }
+        .label-i { color: #dc3545; }
+
+        /* 代码区域 */
+        .code-area {
+            background: #2d2d2d;
+            color: #ccc;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Consolas', monospace;
+            min-width: 350px;
+        }
+
+        .code-line {
+            padding: 2px 10px;
+            border-radius: 4px;
+        }
+        .highlight {
+            background-color: #4a4a4a;
+            color: #fff;
+            border-left: 3px solid #007bff;
+        }
+
+        /* 控制区 */
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        #btn-next { background-color: #007bff; color: white; }
+        #btn-next:hover { background-color: #0056b3; }
+        #btn-next:disabled { background-color: #ccc; cursor: not-allowed; }
+
+        #btn-reset { background-color: #6c757d; color: white; }
+        #btn-reset:hover { background-color: #545b62; }
+
+        .log-box {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+            width: 100%;
+            text-align: left;
+            min-height: 60px;
+        }
+        
+        .result-overlay {
+            color: #28a745;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>Remove Duplicates 可视化教学</h1>
+
+    <div class="container">
+        <!-- 视觉演示区 -->
+        <div class="visual-area">
+            <div class="array-container" id="array-container">
+                <!-- 由JS生成 -->
+            </div>
+            <div id="pointers-container" style="position: relative; width: 100%; height: 0;">
+                <!-- 指针由JS控制 -->
+            </div>
+
+            <div class="controls">
+                <div class="log-box" id="log">点击 "下一步" 开始执行算法...</div>
+                <div class="btn-group">
+                    <button id="btn-reset">重置</button>
+                    <button id="btn-next">下一步</button>
+                </div>
+                <div id="result" class="result-overlay"></div>
+            </div>
+        </div>
+
+        <!-- 代码展示区 -->
+        <div class="code-area">
+<div class="code-line" id="line-1">public int removeDuplicates(int[] nums) {</div>
+<div class="code-line" id="line-2">    int p = 0;</div>
+<div class="code-line" id="line-3">    // int coun = 0; (未使用)</div>
+<div class="code-line" id="line-4">    for(int i = 1; i < nums.length; i++) {</div>
+<div class="code-line" id="line-5">        if(nums[p] != nums[i]) {</div>
+<div class="code-line" id="line-6">            p++;</div>
+<div class="code-line" id="line-7">            nums[p] = nums[i];</div>
+<div class="code-line" id="line-8">        }</div>
+<div class="code-line" id="line-9">    }</div>
+<div class="code-line" id="line-10">    return p + 1;</div>
+<div class="code-line" id="line-11">}</div>
+        </div>
+    </div>
+
+    <script>
+        // 初始数据（有序数组，含重复项）
+        const INITIAL_DATA = [0, 0, 1, 1, 1, 2, 2, 3, 3, 4];
+        let nums = [];
+        
+        // 算法状态
+        let p = 0;
+        let i = 1;
+        let state = 'INIT'; // INIT, CHECK_LOOP, COMPARE, ACTION_MOVE_P, ACTION_COPY, LOOP_INC, FINISHED
+        
+        // DOM 元素
+        const container = document.getElementById('array-container');
+        const logEl = document.getElementById('log');
+        const btnNext = document.getElementById('btn-next');
+        const btnReset = document.getElementById('btn-reset');
+        const resultEl = document.getElementById('result');
+
+        function init() {
+            nums = [...INITIAL_DATA];
+            p = 0;
+            i = 1;
+            state = 'INIT';
+            btnNext.disabled = false;
+            btnNext.textContent = "下一步";
+            resultEl.textContent = "";
+            render();
+            highlightLine(1);
+            log("算法准备就绪。数组已排序。");
+        }
+
+        function render() {
+            container.innerHTML = '';
+            
+            nums.forEach((val, index) => {
+                const box = document.createElement('div');
+                box.className = 'box';
+                box.textContent = val;
+                
+                // 添加索引标记
+                const idxSpan = document.createElement('span');
+                idxSpan.className = 'index';
+                idxSpan.textContent = index;
+                box.appendChild(idxSpan);
+
+                // 高亮指针所在的盒子
+                if (index === p) box.classList.add('active-p');
+                if (index === i && state !== 'FINISHED') box.classList.add('active-i');
+
+                // 添加指针标签 (P 和 I)
+                if (index === p) {
+                    const labelP = document.createElement('div');
+                    labelP.className = 'pointer-label label-p';
+                    labelP.textContent = '↑ p';
+                    box.appendChild(labelP);
+                }
+                if (index === i && state !== 'FINISHED') {
+                    const labelI = document.createElement('div');
+                    labelI.className = 'pointer-label label-i';
+                    labelI.textContent = '↑ i';
+                    // 避免重叠
+                    if (i === p) labelI.style.bottom = "-55px"; 
+                    box.appendChild(labelI);
+                }
+
+                // 视觉效果：如果已经处理完成的部分（有效数组），加深背景
+                if (state === 'FINISHED' && index <= p) {
+                    box.style.borderColor = '#28a745';
+                    box.style.backgroundColor = '#d4edda';
+                } else if (state !== 'FINISHED' && index <= p) {
+                    // 当前有效区域
+                    box.style.borderColor = '#007bff';
+                } else {
+                    // 待处理或废弃区域
+                    box.style.opacity = '0.6';
+                }
+
+                container.appendChild(box);
+            });
+        }
+
+        function highlightLine(lineNum) {
+            document.querySelectorAll('.code-line').forEach(el => el.classList.remove('highlight'));
+            const el = document.getElementById(`line-${lineNum}`);
+            if(el) el.classList.add('highlight');
+        }
+
+        function log(text) {
+            logEl.textContent = text;
+        }
+
+        function nextStep() {
+            switch (state) {
+                case 'INIT':
+                    highlightLine(2);
+                    log(`初始化: p 指向索引 0 (值: ${nums[p]})。`);
+                    state = 'CHECK_LOOP';
+                    break;
+
+                case 'CHECK_LOOP':
+                    highlightLine(4);
+                    if (i < nums.length) {
+                        log(`循环: i 现在指向索引 ${i} (值: ${nums[i]})。检查条件 i < length。`);
+                        state = 'COMPARE';
+                    } else {
+                        log(`循环结束: i (${i}) 已到达数组末尾。`);
+                        state = 'FINISHED';
+                    }
+                    break;
+
+                case 'COMPARE':
+                    highlightLine(5);
+                    if (nums[p] !== nums[i]) {
+                        log(`比较: nums[p] (${nums[p]}) != nums[i] (${nums[i]})。发现新元素！进入 if 块。`);
+                        state = 'ACTION_MOVE_P';
+                    } else {
+                        log(`比较: nums[p] (${nums[p]}) == nums[i] (${nums[i]})。是重复元素，跳过。`);
+                        state = 'LOOP_INC';
+                    }
+                    break;
+
+                case 'ACTION_MOVE_P':
+                    highlightLine(6);
+                    p++;
+                    log(`操作: p 向前移动一位，现在指向索引 ${p}。`);
+                    state = 'ACTION_COPY';
+                    break;
+
+                case 'ACTION_COPY':
+                    highlightLine(7);
+                    nums[p] = nums[i]; // 执行赋值
+                    log(`操作: 将 nums[i] (${nums[i]}) 赋值给 nums[p]。数组更新。`);
+                    state = 'LOOP_INC';
+                    break;
+
+                case 'LOOP_INC':
+                    highlightLine(4); // 回到 for 循环行
+                    i++;
+                    log(`循环继续: i 增加到 ${i}。`);
+                    state = 'CHECK_LOOP';
+                    break;
+
+                case 'FINISHED':
+                    highlightLine(10);
+                    const len = p + 1;
+                    log(`函数返回: p + 1 = ${len}。前 ${len} 个元素是无重复的数组。`);
+                    resultEl.textContent = `最终结果: 新长度为 ${len}, 数组为 [${nums.slice(0, len).join(', ')}]`;
+                    btnNext.disabled = true;
+                    btnNext.textContent = "完成";
+                    break;
+            }
+            render();
+        }
+
+        // 事件监听
+        btnNext.addEventListener('click', nextStep);
+        btnReset.addEventListener('click', init);
+
+        // 启动
+        init();
+
+    </script>
+</body>
+</html>

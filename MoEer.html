@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>摩尔投票算法可视化教学</title>
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --gray: #e5e7eb;
+            --dark: #1f2937;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f3f4f6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: var(--dark);
+        }
+
+        h1 { margin-bottom: 10px; }
+
+        /* 控制区 */
+        .controls {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        input {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 250px;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        .btn-start { background-color: var(--primary); color: white; }
+        .btn-step { background-color: var(--success); color: white; }
+        .btn-reset { background-color: var(--danger); color: white; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+
+        /* 可视化面板 */
+        .stage {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+            width: 100%;
+            max-width: 900px;
+            justify-content: center;
+        }
+
+        /* 状态卡片 */
+        .status-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            width: 200px;
+            text-align: center;
+            border-top: 5px solid var(--primary);
+        }
+
+        .status-value { font-size: 2.5rem; font-weight: bold; margin: 10px 0; }
+        .status-label { color: #666; font-size: 0.9rem; }
+
+        /* 数组展示区 */
+        .array-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+            min-height: 80px;
+        }
+
+        .num-box {
+            width: 60px;
+            height: 60px;
+            background-color: white;
+            border: 2px solid var(--gray);
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        /* 各种状态的样式 */
+        .num-box.active {
+            border-color: var(--primary);
+            transform: scale(1.1);
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+            z-index: 10;
+        }
+        
+        .num-box.processed {
+            background-color: #f9fafb;
+            color: #9ca3af;
+            border-color: #e5e7eb;
+        }
+
+        /* 动画类 */
+        .highlight-green { background-color: #dcfce7 !important; border-color: var(--success) !important; color: var(--success); }
+        .highlight-red { background-color: #fee2e2 !important; border-color: var(--danger) !important; color: var(--danger); }
+        .highlight-blue { background-color: #dbeafe !important; border-color: var(--primary) !important; color: var(--primary); }
+
+        /* 解说日志 */
+        .log-box {
+            width: 100%;
+            max-width: 800px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            min-height: 100px;
+            border-left: 5px solid #666;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .log-highlight { font-weight: bold; padding: 2px 6px; border-radius: 4px; }
+        .log-tag { display: inline-block; padding: 2px 8px; border-radius: 12px; color: white; font-size: 0.8rem; margin-right: 8px; vertical-align: middle;}
+    </style>
+</head>
+<body>
+
+    <h1>🏰 摩尔投票算法可视化</h1>
+    <p style="color:#666; margin-bottom: 20px;">核心思想：不同阵营士兵一换一，剩下的即为众数</p>
+
+    <div class="controls">
+        <label>数组输入 (用逗号分隔):</label>
+        <input type="text" id="inputArray" value="2, 2, 1, 1, 1, 2, 2">
+        <button class="btn-start" onclick="init()">🔄 重置 / 加载</button>
+        <div style="width: 20px;"></div>
+        <button class="btn-step" id="btnNext" onclick="nextStep()" disabled>⏩ 下一步</button>
+        <button style="background-color: #8b5cf6; color: white;" id="btnAuto" onclick="toggleAutoPlay()" disabled>▶ 自动播放</button>
+    </div>
+
+    <!-- 状态面板 -->
+    <div class="stage">
+        <div class="status-card">
+            <div class="status-label">当前候选人 (Candidate)</div>
+            <div class="status-value" id="dispCand" style="color: var(--primary)">None</div>
+        </div>
+        <div class="status-card">
+            <div class="status-label">当前票数 (Count)</div>
+            <div class="status-value" id="dispCount">0</div>
+        </div>
+    </div>
+
+    <!-- 数组可视化 -->
+    <div class="array-container" id="arrayContainer">
+        <!-- JS 生成方块 -->
+    </div>
+
+    <!-- 教学解说 -->
+    <div class="log-box" id="logText">
+        请点击 [重置/加载] 开始演示。
+    </div>
+
+    <script>
+        // 核心变量
+        let nums = [];
+        let currentIndex = -1;
+        let candidate = null;
+        let count = 0;
+        let autoPlayTimer = null;
+
+        // 初始化
+        function init() {
+            stopAutoPlay();
+            const input = document.getElementById('inputArray').value;
+            // 处理全角逗号和空格
+            nums = input.split(/[,，]/).map(s => s.trim()).filter(s => s !== "").map(Number);
+            
+            if (nums.length === 0) {
+                alert("请输入有效的数字数组");
+                return;
+            }
+
+            currentIndex = -1;
+            candidate = null;
+            count = 0;
+
+            renderArray();
+            updateStats();
+            updateLog("准备就绪！点击 [下一步] 开始遍历。", "gray");
+
+            document.getElementById('btnNext').disabled = false;
+            document.getElementById('btnAuto').disabled = false;
+        }
+
+        // 渲染数组 DOM
+        function renderArray() {
+            const container = document.getElementById('arrayContainer');
+            container.innerHTML = '';
+            nums.forEach((n, i) => {
+                const box = document.createElement('div');
+                box.className = 'num-box';
+                box.id = `box-${i}`;
+                box.innerText = n;
+                container.appendChild(box);
+            });
+        }
+
+        // 更新状态面板
+        function updateStats() {
+            const candEl = document.getElementById('dispCand');
+            const countEl = document.getElementById('dispCount');
+            
+            candEl.innerText = candidate === null ? "None" : candidate;
+            countEl.innerText = count;
+
+            // 简单的颜色反馈
+            if(count > 0) countEl.style.color = "var(--success)";
+            else countEl.style.color = "var(--dark)";
+        }
+
+        // 核心逻辑：下一步
+        function nextStep() {
+            if (currentIndex >= nums.length - 1) {
+                finish();
+                return;
+            }
+
+            // 1. 清理上一步的高亮
+            if (currentIndex >= 0) {
+                const prevBox = document.getElementById(`box-${currentIndex}`);
+                prevBox.className = 'num-box processed';
+            }
+
+            // 2. 移动指针
+            currentIndex++;
+            const currentVal = nums[currentIndex];
+            const currentBox = document.getElementById(`box-${currentIndex}`);
+            
+            // 基础激活样式
+            currentBox.classList.add('active');
+
+            // 3. 算法逻辑
+            let logMsg = "";
+            let tagColor = "";
+            let tagName = "";
+
+            if (count === 0) {
+                // 情况A：更换候选人
+                candidate = currentVal;
+                count = 1;
+                
+                tagName = "更换主帅";
+                tagColor = "#3b82f6"; // Blue
+                logMsg = `票数为 0。当前数字 <b>${currentVal}</b> 成为新的候选人，票数重置为 1。`;
+                
+                currentBox.classList.add('highlight-blue');
+                flashStatus('dispCand');
+            } else if (candidate === currentVal) {
+                // 情况B：票数增加
+                count++;
+                
+                tagName = "援军到达";
+                tagColor = "#22c55e"; // Green
+                logMsg = `当前数字 <b>${currentVal}</b> 等于候选人。票数 +1。`;
+                
+                currentBox.classList.add('highlight-green');
+                flashStatus('dispCount');
+            } else {
+                // 情况C：相互抵消
+                count--;
+                
+                tagName = "同归于尽";
+                tagColor = "#ef4444"; // Red
+                logMsg = `当前数字 <b>${currentVal}</b> 不等于候选人 <b>${candidate}</b>。发生抵消，票数 -1。`;
+                
+                currentBox.classList.add('highlight-red');
+                flashStatus('dispCount');
+            }
+
+            updateStats();
+            updateLogHTML(tagName, tagColor, logMsg);
+
+            // 如果是最后一步
+            if (currentIndex === nums.length - 1) {
+                document.getElementById('btnNext').innerText = "查看结果";
+            }
+        }
+
+        // 结束处理
+        function finish() {
+            if (currentIndex >= 0) {
+                 document.getElementById(`box-${currentIndex}`).className = 'num-box processed';
+            }
+            updateLogHTML("结束", "#1f2937", `遍历完成！最终留下的候选人是 <b style="font-size:1.5rem; color:var(--primary)">${candidate}</b>`);
+            document.getElementById('btnNext').disabled = true;
+            document.getElementById('btnAuto').disabled = true;
+            stopAutoPlay();
+        }
+
+        // 辅助：更新日志
+        function updateLog(msg, color) {
+            const logBox = document.getElementById('logText');
+            logBox.style.borderLeftColor = color;
+            logBox.innerText = msg;
+        }
+
+        function updateLogHTML(tag, color, htmlMsg) {
+            const logBox = document.getElementById('logText');
+            logBox.style.borderLeftColor = color;
+            logBox.innerHTML = `<span class="log-tag" style="background:${color}">${tag}</span> ${htmlMsg}`;
+        }
+
+        // 辅助：状态闪烁动画
+        function flashStatus(id) {
+            const el = document.getElementById(id);
+            el.style.transform = "scale(1.2)";
+            setTimeout(() => el.style.transform = "scale(1)", 200);
+        }
+
+        // 自动播放逻辑
+        function toggleAutoPlay() {
+            if (autoPlayTimer) {
+                stopAutoPlay();
+            } else {
+                document.getElementById('btnAuto').innerText = "⏸ 暂停";
+                document.getElementById('btnAuto').style.backgroundColor = "#666";
+                // 立即执行一步，然后定时
+                nextStep();
+                autoPlayTimer = setInterval(() => {
+                    if (document.getElementById('btnNext').disabled) {
+                        stopAutoPlay();
+                    } else {
+                        nextStep();
+                    }
+                }, 1000); // 1秒一步
+            }
+        }
+
+        function stopAutoPlay() {
+            if (autoPlayTimer) {
+                clearInterval(autoPlayTimer);
+                autoPlayTimer = null;
+            }
+            document.getElementById('btnAuto').innerText = "▶ 自动播放";
+            document.getElementById('btnAuto').style.backgroundColor = "#8b5cf6";
+        }
+
+        // 页面加载初始化
+        window.onload = init;
+    </script>
+</body>
+</html>

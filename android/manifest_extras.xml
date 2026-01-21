@@ -1,0 +1,16 @@
+<service
+    android:name="org.sequentialclicker.sequentialclicker.ClickerForegroundService"
+    android:exported="false" />
+
+<service
+    android:name="org.sequentialclicker.sequentialclicker.ClickerAccessibilityService"
+    android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+    android:exported="false">
+    <intent-filter>
+        <action android:name="android.accessibilityservice.AccessibilityService" />
+    </intent-filter>
+    <meta-data
+        android:name="android.accessibilityservice"
+        android:resource="@xml/sequential_clicker_accessibility" />
+</service>
+

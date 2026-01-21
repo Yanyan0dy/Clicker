@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数组轮转可视化教学 (Java版)</title>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --temp-color: #e74c3c;
+            --bg-color: #f4f7f6;
+            --code-bg: #2d3436;
+            --code-highlight: #4a5a5e;
+            --box-size: 50px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        h1 { color: #2c3e50; }
+
+        /* 布局容器 */
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 40px;
+            width: 100%;
+            max-width: 1200px;
+            margin-top: 20px;
+        }
+
+        /* 左侧代码区 */
+        .code-panel {
+            background-color: var(--code-bg);
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            min-width: 350px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            position: relative;
+        }
+
+        .code-line {
+            padding: 2px 10px;
+            border-radius: 4px;
+            display: block;
+        }
+
+        .code-line.active {
+            background-color: #f1c40f; /* 高亮色 */
+            color: #000;
+            font-weight: bold;
+        }
+
+        /* 右侧可视化区 */
+        .visual-panel {
+            flex: 1;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 400px;
+        }
+
+        /* 控制区 */
+        .controls {
+            margin-bottom: 30px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 60px; text-align: center;}
+        button {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        button:hover { background-color: #2980b9; }
+        button:disabled { background-color: #bdc3c7; cursor: not-allowed; }
+        .btn-reset { background-color: #95a5a6; }
+
+        /* 数组展示 */
+        .array-container {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            position: relative;
+            height: 80px;
+        }
+
+        .box-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: all 0.5s ease;
+        }
+
+        .box {
+            width: var(--box-size);
+            height: var(--box-size);
+            background-color: var(--primary-color);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 8px;
+            box-shadow: 0 4px 0 #2980b9;
+            transition: all 0.5s ease;
+            position: relative;
+        }
+
+        .index {
+            margin-top: 5px;
+            color: #7f8c8d;
+            font-size: 12px;
+        }
+
+        /* 临时数组区域 */
+        .temp-area {
+            border: 2px dashed #bdc3c7;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            position: relative;
+        }
+        .temp-area::before {
+            content: "临时数组 num1[]";
+            position: absolute;
+            top: -10px;
+            left: 20px;
+            background: white;
+            padding: 0 10px;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+
+        .box.temp {
+            background-color: var(--temp-color);
+            box-shadow: 0 4px 0 #c0392b;
+        }
+        
+        .box.ghost {
+            opacity: 0.3; /* 原位置变淡 */
+            background-color: #ccc;
+            box-shadow: none;
+            transform: scale(0.9);
+        }
+
+        /* 解释文字 */
+        .explanation {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+            border-radius: 4px;
+            width: 100%;
+            text-align: center;
+            font-weight: bold;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>Java 数组轮转 (System.arraycopy) 可视化</h1>
+
+    <div class="container">
+        <!-- 左边：代码展示 -->
+        <div class="code-panel">
+            <div class="code-line" id="line-0">class Solution {</div>
+            <div class="code-line" id="line-1">    public void rotate(int[] nums, int k) {</div>
+            <div class="code-line" id="line-2">&nbsp;</div>
+            <div class="code-line" id="line-3">        int n = nums.length;</div>
+            <div class="code-line" id="line-4">        int coun = k % n;</div>
+            <div class="code-line" id="line-5">        // 创建临时数组</div>
+            <div class="code-line" id="line-6">        int num1[] = new int[coun];</div>
+            <div class="code-line" id="line-7">&nbsp;</div>
+            <div class="code-line" id="line-8">        // 1. 备份尾部到 num1</div>
+            <div class="code-line" id="line-9">        System.arraycopy(nums, n-coun, num1, 0, coun);</div>
+            <div class="code-line" id="line-10">        // 2. 主体整体后移</div>
+            <div class="code-line" id="line-11">        System.arraycopy(nums, 0, nums, coun, n-coun);</div>
+            <div class="code-line" id="line-12">        // 3. 把 num1 贴回头部</div>
+            <div class="code-line" id="line-13">        System.arraycopy(num1, 0, nums, 0, coun);</div>
+            <div class="code-line" id="line-14">    }</div>
+            <div class="code-line" id="line-15">}</div>
+        </div>
+
+        <!-- 右边：可视化演示 -->
+        <div class="visual-panel">
+            <div class="controls">
+                <label>k (步数): <input type="number" id="k-input" value="3" min="0"></label>
+                <button onclick="reset()">重置 / 设置</button>
+                <button onclick="nextStep()" id="btn-next">下一步</button>
+                <span style="color: #999; font-size: 12px;">(数组默认: 1~7)</span>
+            </div>
+
+            <!-- 主数组 -->
+            <div class="array-container" id="nums-container">
+                <!-- 由 JS 生成 -->
+            </div>
+
+            <!-- 临时数组 -->
+            <div class="temp-area">
+                <div id="num1-container" style="display: flex; gap: 10px;"></div>
+            </div>
+
+            <div class="explanation" id="explain-text">点击“下一步”开始演示...</div>
+        </div>
+    </div>
+
+    <script>
+        // 初始数据
+        let initialNums = [1, 2, 3, 4, 5, 6, 7];
+        let nums = [...initialNums];
+        let k = 3;
+        let n = nums.length;
+        let coun = 0;
+        let num1 = [];
+        let step = 0;
+
+        // 获取DOM元素
+        const numsContainer = document.getElementById('nums-container');
+        const num1Container = document.getElementById('num1-container');
+        const explainText = document.getElementById('explain-text');
+        const nextBtn = document.getElementById('btn-next');
+
+        // 初始化
+        function init() {
+            numsContainer.innerHTML = '';
+            num1Container.innerHTML = '';
+            
+            // 渲染主数组
+            nums.forEach((val, idx) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'box-wrapper';
+                wrapper.id = `idx-${idx}`;
+                
+                const box = document.createElement('div');
+                box.className = 'box';
+                box.textContent = val;
+                
+                const index = document.createElement('div');
+                index.className = 'index';
+                index.textContent = idx;
+
+                wrapper.appendChild(box);
+                wrapper.appendChild(index);
+                numsContainer.appendChild(wrapper);
+            });
+        }
+
+        function highlightLine(lineId) {
+            // 清除所有高亮
+            document.querySelectorAll('.code-line').forEach(el => el.classList.remove('active'));
+            // 添加新高亮
+            if(lineId) document.getElementById(lineId).classList.add('active');
+        }
+
+        function reset() {
+            // 获取输入
+            k = parseInt(document.getElementById('k-input').value);
+            nums = [1, 2, 3, 4, 5, 6, 7]; // 每次重置回默认，简单起见
+            n = nums.length;
+            step = 0;
+            num1 = [];
+            
+            // 重置UI
+            init();
+            nextBtn.disabled = false;
+            nextBtn.textContent = "下一步";
+            explainText.textContent = "准备就绪。n=" + n + ", k=" + k;
+            highlightLine(null);
+        }
+
+        function nextStep() {
+            step++;
+            
+            if (step === 1) {
+                // 计算 coun
+                highlightLine('line-4');
+                coun = k % n;
+                explainText.textContent = `计算: coun = k % n = ${k} % ${n} = ${coun}`;
+            } 
+            else if (step === 2) {
+                // new int[coun]
+                highlightLine('line-6');
+                if (coun === 0) {
+                    explainText.textContent = "coun为0，不需要移动。";
+                    step = 10; // 结束
+                    nextBtn.disabled = true;
+                    return;
+                }
+                explainText.textContent = `创建临时数组 num1，长度为 ${coun}`;
+                // 在界面上画出空的虚线框
+                for(let i=0; i<coun; i++) {
+                    const box = document.createElement('div');
+                    box.className = 'box temp';
+                    box.style.opacity = '0.2'; // 占位
+                    num1Container.appendChild(box);
+                }
+            }
+            else if (step === 3) {
+                // System.arraycopy(nums, n-coun, num1, 0, coun);
+                highlightLine('line-9');
+                explainText.innerHTML = `<b>备份尾部：</b>把 nums 索引 ${n-coun} 到 ${n-1} 的元素复制到 num1`;
+                
+                num1Container.innerHTML = ''; // 清空占位
+                num1 = [];
+                // 视觉效果
+                for(let i = 0; i < coun; i++) {
+                    let srcIndex = n - coun + i;
+                    let val = nums[srcIndex];
+                    num1.push(val);
+
+                    // 创建 Temp Box
+                    const box = document.createElement('div');
+                    box.className = 'box temp';
+                    box.textContent = val;
+                    // 动画：从上面飞下来
+                    box.style.animation = "popIn 0.5s"; 
+                    num1Container.appendChild(box);
+
+                    // 把原数组对应的变灰
+                    const originalBox = document.querySelector(`#idx-${srcIndex} .box`);
+                    originalBox.classList.add('ghost');
+                }
+            }
+            else if (step === 4) {
+                // System.arraycopy(nums, 0, nums, coun, n-coun);
+                highlightLine('line-11');
+                explainText.innerHTML = `<b>主体后移：</b>把 nums 索引 0 开始的元素，搬运到索引 ${coun} (长度 ${n-coun})`;
+
+                // 逻辑上移动数据
+                // 这里的可视化难点是“就地移动”。我们通过更新DOM来模拟。
+                // 我们需要反向遍历防止覆盖（虽然arraycopy处理了这个，但JS DOM操作需要手动处理）
+                
+                // 先创建新的数组状态
+                let newNumsState = [...nums];
+                // 模拟 arraycopy
+                for(let i=0; i < n - coun; i++) {
+                    newNumsState[coun + i] = nums[0 + i];
+                }
+                
+                // 渲染中间状态：头部还未被 temp 覆盖，依然保留旧值（或者脏数据）
+                // 为了视觉清晰，我们先把旧的头部变灰，把移动后的高亮
+                
+                // 1. 把 0 到 coun-1 (即将被覆盖的) 变灰
+                for(let i=0; i<coun; i++) {
+                    let box = document.querySelector(`#idx-${i} .box`);
+                    box.classList.add('ghost');
+                    box.style.backgroundColor = '#95a5a6'; // 脏数据颜色
+                }
+
+                // 2. 更新后移的部分
+                for(let i=0; i < n - coun; i++) {
+                    let targetIdx = coun + i;
+                    let val = newNumsState[targetIdx];
+                    let box = document.querySelector(`#idx-${targetIdx} .box`);
+                    
+                    // 视觉上的移动：更新数值，去除ghost，高亮蓝色
+                    box.textContent = val;
+                    box.classList.remove('ghost');
+                    box.style.backgroundColor = 'var(--primary-color)';
+                    
+                    // 一个小的闪烁动画
+                    box.animate([
+                        { transform: 'scale(1.2)' },
+                        { transform: 'scale(1)' }
+                    ], { duration: 300 });
+                }
+                
+                // 更新内存中的 nums
+                nums = newNumsState;
+            }
+            else if (step === 5) {
+                // System.arraycopy(num1, 0, nums, 0, coun);
+                highlightLine('line-13');
+                explainText.innerHTML = `<b>填补头部：</b>把 num1 中的 ${coun} 个元素，贴回到 nums 头部`;
+
+                // 从 num1 填回 nums
+                for(let i=0; i<coun; i++) {
+                    nums[i] = num1[i];
+                    
+                    let box = document.querySelector(`#idx-${i} .box`);
+                    box.textContent = num1[i];
+                    box.classList.remove('ghost');
+                    box.style.backgroundColor = 'var(--temp-color)'; // 这里的颜色表示它是从temp回来的
+                    
+                     box.animate([
+                        { transform: 'translateY(20px)', opacity: 0 },
+                        { transform: 'translateY(0)', opacity: 1 }
+                    ], { duration: 500 });
+                }
+                
+                // 清空 temp 显示
+                num1Container.style.opacity = '0.5';
+            }
+            else {
+                explainText.textContent = "完成！数组轮转结束。";
+                nextBtn.textContent = "完成";
+                nextBtn.disabled = true;
+                highlightLine(null);
+            }
+        }
+
+        // 初始化运行一次
+        reset();
+
+    </script>
+</body>
+</html>
